@@ -44,12 +44,24 @@ impl Default for Game {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Direction {
     Up,
     Down,
     Left,
     Right,
+}
+
+impl Direction {
+    fn is_opposite(&self, direction: Self) -> bool {
+        let dir = self.to_owned();
+        match direction {
+            Self::Down => dir == Self::Up,
+            Self::Up => dir == Self::Down,
+            Self::Right => dir == Self::Left,
+            Self::Left => dir == Self::Right,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -108,22 +120,13 @@ impl Snake {
                     }
                 })
                 .collect();
-
-            // for body in self.body.iter() {
-            //     if first {
-            //         body.position = head_pos;
-            //         first = false;
-            //     } else {
-            //         let temp_pos = body.position.clone();
-            //         body.position = last_pos;
-            //         let last_pos = temp_pos;
-            //     }
-            // }
         }
     }
 
     fn update_direction(&mut self, direction: Direction) {
-        self.direction = direction;
+        if !self.direction.is_opposite(direction) {
+            self.direction = direction;
+        }
     }
 }
 
