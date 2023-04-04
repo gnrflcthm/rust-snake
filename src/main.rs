@@ -2,6 +2,7 @@ extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
+extern crate rand;
 
 use glutin_window::GlutinWindow as Window;
 use graphics::rectangle::square;
@@ -10,21 +11,22 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::window::WindowSettings;
 use piston::{ButtonEvent, RenderArgs, UpdateArgs};
 use piston::{EventSettings, Events, RenderEvent, UpdateEvent};
+use rand::{thread_rng, Rng};
 
 enum GameState {
     Standby,
     InGame,
-    GameOver
+    GameOver,
 }
 struct Game {
     background_color: [f32; 4],
     gl: GlGraphics,
     score: u32,
-    state: GameState
+    state: GameState,
 }
 
 impl Game {
-    fn render(&mut self, _render_args: &RenderArgs) {
+    fn render(&mut self, render_args: &RenderArgs) {
         self.gl.clear_color(self.background_color.clone());
     }
 
@@ -39,7 +41,7 @@ impl Default for Game {
             background_color: [0.0, 0.0, 0.0, 1.0],
             gl: GlGraphics::new(OpenGL::V3_2),
             score: 0,
-            state: GameState::Standby
+            state: GameState::Standby,
         }
     }
 }
@@ -128,6 +130,12 @@ impl Snake {
             self.direction = direction;
         }
     }
+
+    fn grow(&mut self) {
+        if let Some(block) = self.body.last() {
+            self.body.push(Block { position: block.position });
+        }
+    }
 }
 
 impl Default for Snake {
@@ -152,6 +160,54 @@ impl Default for Snake {
     }
 }
 
+struct Food {
+    color: [f32; 4],
+    position: (f64, f64),
+    is_eaten: bool,
+    gl: GlGraphics,
+    size: f64,
+}
+
+impl Food {
+    fn is_eaten(&mut self, snake: &Snake) {
+        self.is_eaten = self.position == snake.head.position;
+    }
+
+    fn render(&mut self, render_args: &RenderArgs) {
+        use graphics::*;
+        self.gl.draw(render_args.viewport(), |ctx, gl| {
+            let food = square(self.position.0, self.position.1, self.size);
+
+            rectangle(self.color, food, ctx.transform, gl);
+        });
+    }
+
+    fn update(&mut self, screen_size: &(u32, u32)) {
+        if self.is_eaten {
+            self.is_eaten = false;
+            let (x, y) = Self::generate_new_position(self.size as u32, screen_size);
+            self.position = (x as f64, y as f64);
+        }
+    }
+
+    fn from_screen(screen_size: &(u32, u32)) -> Self {
+        Food {
+            color: [1.0, 0.0, 0.0, 1.0],
+            gl: GlGraphics::new(OpenGL::V3_2),
+            is_eaten: false,
+            position: Food::generate_new_position(25, screen_size),
+            size: 25.0
+        }
+    }
+
+    pub fn generate_new_position(food_size: u32, screen_size: &(u32, u32)) -> (f64, f64) {
+        let (w, h) = screen_size;
+        let x = thread_rng().gen_range(0..(w / food_size)) * food_size;
+        let y = thread_rng().gen_range(0..(h / food_size)) * food_size;
+        (x as f64, y as f64)
+    }
+}
+
 fn main() {
     let opengl = OpenGL::V3_2;
     let window_title = String::from("Snek");
@@ -166,6 +222,7 @@ fn main() {
 
     let mut game = Game::default();
     let mut snake = Snake::default();
+    let mut food = Food::from_screen(&window_size);
 
     let mut event_settings = EventSettings::new();
     event_settings.ups = 8;
@@ -175,10 +232,17 @@ fn main() {
         if let Some(args) = ev.render_args() {
             game.render(&args);
             snake.render(&args);
+            food.render(&args);
         }
 
         if let Some(args) = ev.update_args() {
             snake.update();
+            food.is_eaten(&snake);
+            if food.is_eaten {
+                game.add_score();
+                snake.grow();
+            }
+            food.update(&window_size);
         }
 
         if let Some(args) = ev.button_args() {
