@@ -11,10 +11,16 @@ use piston::window::WindowSettings;
 use piston::{ButtonEvent, RenderArgs, UpdateArgs};
 use piston::{EventSettings, Events, RenderEvent, UpdateEvent};
 
+enum GameState {
+    Standby,
+    InGame,
+    GameOver
+}
 struct Game {
     background_color: [f32; 4],
     gl: GlGraphics,
     score: u32,
+    state: GameState
 }
 
 impl Game {
@@ -33,6 +39,7 @@ impl Default for Game {
             background_color: [0.0, 0.0, 0.0, 1.0],
             gl: GlGraphics::new(OpenGL::V3_2),
             score: 0,
+            state: GameState::Standby
         }
     }
 }
@@ -158,7 +165,7 @@ fn main() {
     let mut snake = Snake::default();
 
     let mut event_settings = EventSettings::new();
-    event_settings.ups = 4;
+    event_settings.ups = 8;
     let mut events = Events::new(event_settings);
 
     while let Some(ev) = events.next(&mut window) {
