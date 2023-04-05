@@ -4,28 +4,30 @@ mod game;
 mod helpers;
 mod shared;
 
+extern crate find_folder;
 extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate piston;
-extern crate rand;
 extern crate piston_window;
+extern crate rand;
 
 use std::path::Path;
 
-use enums::Direction;
-use opengl_graphics::{OpenGL};
-use piston::{ButtonEvent, EventLoop};
-use piston::{EventSettings, Events, RenderEvent, UpdateEvent};
 use entities::{Food, Snake};
+use enums::Direction;
+use find_folder::Search;
 use game::Game;
+use opengl_graphics::OpenGL;
+use piston::{ButtonEvent, EventLoop};
+use piston::{EventSettings, UpdateEvent};
 use piston_window::{PistonWindow, WindowSettings};
 use shared::Render;
 
 fn main() {
     let opengl = OpenGL::V3_2;
     let window_title = String::from("Snek");
-    let window_size = (500, 500);
+    let window_size = (500, 550);
 
     let mut window: PistonWindow = WindowSettings::new(window_title, window_size)
         .resizable(false)
@@ -33,12 +35,12 @@ fn main() {
         .exit_on_esc(true)
         .build()
         .unwrap();
-     
-     let font_path = Path::new("../assets/Minecraft.ttf");
-    let mut glyphs = window.load_font(font_path);
+
+    let font_path = Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
+    let mut glyphs = window.load_font(font_path.join("Minecraft.ttf")).unwrap();
 
     let mut game = Game::default();
-
+    game.glyphs = Some(&mut glyphs);
     let mut snake = Snake::default();
     let mut food = Food::from_screen(&window_size);
 
@@ -47,10 +49,10 @@ fn main() {
     window.set_event_settings(event_settings);
 
     while let Some(ev) = window.next() {
-        window.draw_2d(&ev, |ctx, gl, _device| {
-            game.render(gl, None);
-            snake.render(gl, Some(ctx));
-            food.render(gl, Some(ctx));
+        window.draw_2d(&ev, |ctx, gl, device| {
+            game.render(gl, Some(ctx), Some(device));
+            snake.render(gl, Some(ctx), None);
+            food.render(gl, Some(ctx), None);
         });
 
         if ev.update_args().is_some() {

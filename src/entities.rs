@@ -3,8 +3,7 @@ use crate::shared::Render;
 use graphics::rectangle;
 use graphics::rectangle::square;
 use graphics::types::Matrix2d;
-use piston::RenderArgs;
-use piston_window::context::Context;
+use piston_window::{context::Context, GfxDevice};
 use piston_window::G2d;
 use rand::{thread_rng, Rng};
 
@@ -46,7 +45,7 @@ impl Food {
 }
 
 impl Render for Food {
-    fn render(&self, gl: &mut G2d, ctx: Option<Context>) {
+    fn render(&mut self, gl: &mut G2d, ctx: Option<Context>, _: Option<&mut GfxDevice>) {
         let mut transform = Matrix2d::default();
 
         if let Some(ctx) = ctx {
@@ -135,7 +134,7 @@ impl Default for Snake {
 }
 
 impl Render for Snake {
-    fn render(&self, gl: &mut G2d, ctx: Option<Context>) {
+    fn render(&mut self, gl: &mut G2d, ctx: Option<Context>, _: Option<&mut GfxDevice>) {
         let mut transform = Matrix2d::default();
 
         if let Some(ctx) = ctx {
