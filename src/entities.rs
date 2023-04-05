@@ -1,31 +1,23 @@
-
-
-use opengl_graphics::{GlGraphics, OpenGL};
-use piston::RenderArgs;
-use graphics::rectangle::square;
-use graphics::rectangle;
-use rand::{thread_rng, Rng};
 use crate::enums::Direction;
+use crate::shared::Render;
+use graphics::rectangle;
+use graphics::rectangle::square;
+use graphics::types::Matrix2d;
+use piston::RenderArgs;
+use piston_window::context::Context;
+use piston_window::G2d;
+use rand::{thread_rng, Rng};
 
 pub struct Food {
     color: [f32; 4],
     position: (f64, f64),
     pub is_eaten: bool,
-    gl: GlGraphics,
     size: f64,
 }
 
 impl Food {
     pub fn is_eaten(&mut self, snake: &Snake) {
         self.is_eaten = self.position == snake.head.position;
-    }
-
-    pub fn render(&mut self, render_args: &RenderArgs) {
-        self.gl.draw(render_args.viewport(), |ctx, gl| {
-            let food = square(self.position.0, self.position.1, self.size);
-
-            rectangle(self.color, food, ctx.transform, gl);
-        });
     }
 
     pub fn update(&mut self, screen_size: &(u32, u32)) {
@@ -39,7 +31,6 @@ impl Food {
     pub fn from_screen(screen_size: &(u32, u32)) -> Self {
         Food {
             color: [1.0, 0.0, 0.0, 1.0],
-            gl: GlGraphics::new(OpenGL::V3_2),
             is_eaten: false,
             position: Food::generate_new_position(25, screen_size),
             size: 25.0,
@@ -54,30 +45,29 @@ impl Food {
     }
 }
 
+impl Render for Food {
+    fn render(&self, gl: &mut G2d, ctx: Option<Context>) {
+        let mut transform = Matrix2d::default();
+
+        if let Some(ctx) = ctx {
+            transform = ctx.transform;
+        }
+
+        let food = square(self.position.0, self.position.1, self.size);
+
+        rectangle(self.color, food, transform, gl);
+    }
+}
+
 pub struct Snake {
     head: Block,
     body: Vec<Block>,
-    gl: GlGraphics,
     color: [f32; 4],
     pub direction: Direction,
     size: f64,
 }
 
 impl Snake {
-    pub fn render(&mut self, render_args: &RenderArgs) {
-        use graphics::*;
-
-        self.gl.draw(render_args.viewport(), |ctx, gl| {
-            for b in &self.body {
-                let block = square(b.position.0, b.position.1, self.size);
-                rectangle(self.color, block, ctx.transform, gl);
-            }
-
-            let block = square(self.head.position.0, self.head.position.1, self.size);
-            rectangle(self.color, block, ctx.transform, gl);
-        });
-    }
-
     pub fn update(&mut self) {
         let head_pos = self.head.position.clone();
         match self.direction {
@@ -127,7 +117,6 @@ impl Default for Snake {
     fn default() -> Self {
         Snake {
             color: [0.0, 1.0, 0.0, 1.0],
-            gl: GlGraphics::new(OpenGL::V3_2),
             head: Block {
                 position: (0.0, 0.0),
             },
@@ -145,9 +134,25 @@ impl Default for Snake {
     }
 }
 
+impl Render for Snake {
+    fn render(&self, gl: &mut G2d, ctx: Option<Context>) {
+        let mut transform = Matrix2d::default();
+
+        if let Some(ctx) = ctx {
+            transform = ctx.transform;
+        }
+
+        for b in &self.body {
+            let block = square(b.position.0, b.position.1, self.size);
+            rectangle(self.color, block, transform, gl);
+        }
+
+        let block = square(self.head.position.0, self.head.position.1, self.size);
+        rectangle(self.color, block, transform, gl);
+    }
+}
+
 #[derive(Clone, Copy)]
 struct Block {
     position: (f64, f64),
 }
-
-
