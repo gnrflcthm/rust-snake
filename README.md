@@ -1,4 +1,4 @@
-# Snake Game Build with Rust using Piston
+# Snake Game Built with Rust using Piston
 This project is intended for learning Rust concepts and game development using [Piston](https://www.piston.rs/)
 
 ## How To Run
