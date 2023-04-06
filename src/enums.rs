@@ -5,7 +5,7 @@ pub enum GameState {
     GameOver,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Direction {
     Up,
     Down,

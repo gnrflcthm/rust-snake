@@ -12,13 +12,13 @@ pub struct Game<'a> {
     background_color: [f32; 4],
     text_color: [f32; 4],
     font_size: u32,
-    score: u32,
+    pub score: u32,
     state: GameState,
     pub glyphs: Option<&'a mut Glyphs>,
 }
 
 impl Game<'_> {
-    fn draw_ui(&mut self, gl: &mut G2d, ctx: Context, device: &mut GfxDevice) {
+    fn draw_score_dashboard(&mut self, gl: &mut G2d, ctx: Context, device: &mut GfxDevice) {
         let text = Text::new_color(self.text_color, self.font_size);
         let position = [20.0, 37.5];
 
@@ -28,7 +28,6 @@ impl Game<'_> {
         let screen = &ctx.viewport.unwrap().rect;
 
         let rect = [0.0, 0.0, screen[2] as f64, 50.0];
-        println!("{:?}", screen);
         
         rectangle(dashboard_background, rect, ctx.transform, gl);
 
@@ -49,6 +48,10 @@ impl Game<'_> {
     pub fn add_score(&mut self) {
         self.score += 1;
     }
+
+    pub fn update_state(&mut self, state: GameState) {
+        self.state = state;
+    }
 }
 
 impl Default for Game<'_> {
@@ -58,7 +61,7 @@ impl Default for Game<'_> {
             text_color: [1.0, 1.0, 1.0, 1.0],
             font_size: 25,
             score: 0,
-            state: GameState::Standby,
+            state: GameState::InGame,
             glyphs: None,
         }
     }
@@ -75,7 +78,7 @@ impl Render for Game<'_> {
 
         if let Some(ctx) = ctx {
             if let Some(device) = device {
-                self.draw_ui(gl, ctx, device);
+                self.draw_score_dashboard(gl, ctx, device);
             }
         }
     }

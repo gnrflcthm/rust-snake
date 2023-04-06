@@ -12,14 +12,12 @@ extern crate piston;
 extern crate piston_window;
 extern crate rand;
 
-use std::path::Path;
-
 use entities::{Food, Snake};
-use enums::Direction;
+use enums::{Direction, GameState};
 use find_folder::Search;
 use game::Game;
 use opengl_graphics::OpenGL;
-use piston::{ButtonEvent, EventLoop};
+use piston::{ButtonEvent, ButtonState, EventLoop, Key, Window};
 use piston::{EventSettings, UpdateEvent};
 use piston_window::{PistonWindow, WindowSettings};
 use shared::Render;
@@ -42,6 +40,7 @@ fn main() {
     let mut game = Game::default();
     game.glyphs = Some(&mut glyphs);
     let mut snake = Snake::default();
+    snake.set_start_pos((250.0, 275.0));
     let mut food = Food::from_screen(&window_size);
 
     let mut event_settings = EventSettings::new();
@@ -56,26 +55,42 @@ fn main() {
         });
 
         if ev.update_args().is_some() {
+            let size = window.size().clone();
+            let screen_size = (size.width, size.height);
+            
             snake.update();
+            snake.check_state(&screen_size);
+
+            if snake.is_dead {
+                // TODO: Update Game State
+                game.update_state(GameState::GameOver);
+                println!("Score {}", game.score);
+                std::process::exit(0);
+            }
+
             food.is_eaten(&snake);
             if food.is_eaten {
                 game.add_score();
                 snake.grow();
             }
-            food.update(&window_size);
+            food.update(&window_size, Some(&snake));
         }
 
         if let Some(args) = ev.button_args() {
-            if let Some(code) = args.scancode {
-                let direction = match code {
-                    57416 => Direction::Up,
-                    57419 => Direction::Left,
-                    57421 => Direction::Right,
-                    57424 => Direction::Down,
+            let direction = match args.state {
+                ButtonState::Release => match args.button {
+                    piston::Button::Keyboard(key) => match key {
+                        Key::Up | Key::I => Direction::Up,
+                        Key::Left | Key::J => Direction::Left,
+                        Key::Right | Key::L => Direction::Right,
+                        Key::Down | Key::K => Direction::Down,
+                        _ => snake.direction,
+                    },
                     _ => snake.direction,
-                };
-                snake.update_direction(direction);
-            }
+                },
+                ButtonState::Press => snake.direction,
+            };
+            snake.update_direction(direction);
         }
     }
 }

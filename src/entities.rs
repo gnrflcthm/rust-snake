@@ -19,10 +19,10 @@ impl Food {
         self.is_eaten = self.position == snake.head.position;
     }
 
-    pub fn update(&mut self, screen_size: &(u32, u32)) {
+    pub fn update(&mut self, screen_size: &(u32, u32), snake: Option<&Snake>) {
         if self.is_eaten {
             self.is_eaten = false;
-            let (x, y) = Self::generate_new_position(self.size as u32, screen_size);
+            let (x, y) = Self::generate_new_position(self.size as u32, screen_size, snake);
             self.position = (x as f64, y as f64);
         }
     }
@@ -31,17 +31,39 @@ impl Food {
         Food {
             color: [1.0, 0.0, 0.0, 1.0],
             is_eaten: false,
-            position: Food::generate_new_position(25, screen_size),
+            position: Food::generate_new_position(25, screen_size, Some(&Snake::default())),
             size: 25.0,
         }
     }
 
-    pub fn generate_new_position(food_size: u32, screen_size: &(u32, u32)) -> (f64, f64) {
+    pub fn generate_new_position(food_size: u32, screen_size: &(u32, u32), snake: Option<&Snake>) -> (f64, f64) {
         let (w, h) = screen_size;
         let x = thread_rng().gen_range(0..(w / food_size)) * food_size;
-        let y = thread_rng().gen_range(0..(h / food_size)) * food_size;
-        (x as f64, y as f64)
+        let y = thread_rng().gen_range(2..(h / food_size)) * food_size;
+        let mut new_pos = (x as f64, y as f64);
+        if let Some(snake) = snake {
+            while Food::is_intersecting(&new_pos, &snake.get_segments()) {
+                let x = thread_rng().gen_range(0..(w / food_size)) * food_size;
+                let y = thread_rng().gen_range(2..(h / food_size)) * food_size;
+                new_pos = (x as f64, y as f64);
+            } 
+        }
+        new_pos
     }
+
+    pub fn is_intersecting(a: &(f64, f64), b: &Vec<Block>) -> bool {
+        if b.len() == 0 {
+            return false;
+        }
+
+        for block in b.into_iter() {
+            if a == &block.position {
+                return true;
+            }
+        }
+        false
+    }
+
 }
 
 impl Render for Food {
@@ -64,6 +86,7 @@ pub struct Snake {
     color: [f32; 4],
     pub direction: Direction,
     size: f64,
+    pub is_dead: bool,
 }
 
 impl Snake {
@@ -110,6 +133,37 @@ impl Snake {
             });
         }
     }
+
+    pub fn check_state(&mut self, screen_size: &(f64, f64)) {
+        let (x, y) = self.head.position;
+        let (screen_w, screen_h) = screen_size.clone();
+        if x < 0.0 || x > screen_w - self.size || y < 50.0 || y >= screen_h {
+            self.is_dead = true;
+        }
+
+        for block in self.body.iter() {
+            if block.position == self.head.position {
+                self.is_dead = true;
+                return;
+            }
+        }
+    }
+
+    pub fn set_start_pos(&mut self, position: (f64, f64)) {
+        self.head.position = position;
+        for body in self.body.iter_mut() {
+            body.position = position;
+        }
+    }
+
+    pub fn get_segments(&self) -> Vec<Block> {
+        let head = self.head.clone();
+        let body = self.body.clone();
+        let mut new_vec = vec![head];
+        new_vec.extend(body.into_iter());
+
+        new_vec
+    } 
 }
 
 impl Default for Snake {
@@ -129,6 +183,7 @@ impl Default for Snake {
             ],
             direction: Direction::Right,
             size: 25.0,
+            is_dead: false
         }
     }
 }
@@ -152,6 +207,6 @@ impl Render for Snake {
 }
 
 #[derive(Clone, Copy)]
-struct Block {
-    position: (f64, f64),
+pub struct Block {
+    pub position: (f64, f64),
 }
